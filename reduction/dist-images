@@ -13,7 +13,6 @@
 # 26 Feb 2023 BMP - port to Python, copy/delete images in fromdir older than X days
 
 import astropy.io.fits as pyfits
-import shutil
 from os import umask
 from pathlib import Path
 from subprocess import run, check_output

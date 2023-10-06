@@ -122,7 +122,7 @@ if len(sys.argv) > 1:
         calibrate_image(img)
 # with no arguments, run continuously
 else:
-    while True
+    while True:
         for img in image_dir.glob("*.fts"):
             try:
                 header = fits.getheader(img, 0)

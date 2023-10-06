@@ -1,0 +1,135 @@
+#!/usr/bin/env python
+"""Calibrate and manage incoming FITS images
+"""
+
+import os
+import subprocess
+import sys
+import time
+from datetime import datetime as dt
+from pathlib import Path
+
+from astropy.io import fits
+
+# RA's in Sloan catalog at 30 deg Dec
+sloan_ra = [22,23,0,1,2,8,9,10,11,12,13,14,15,16,17]
+
+# Directories
+fromdir = Path('/usr/local/telescope/user')
+todir = Path('/mnt/imagesbucket')
+image_dir = fromdir / 'images'
+rawimage_dir = todir / 'rawimage' / dt.now().strftime("%d-%B-%Y")
+
+maxdays = 7
+
+def timestamp():
+    return str(dt.now())[:19]
+    
+def runcmd(cmd):
+    """run a command and log output/errors if any to stdout
+    add check=True to exit on errors
+    """
+    x = subprocess.run(cmd, shell=True, encoding='ascii',
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if x.stdout: print(x.stdout)
+
+def calibrate_image(img):
+    """process a single image"""
+
+    print(f'Started processing {img.name} at {timestamp()}')
+    fits.setval(img, 'CALSTART', timestamp(), 'Calibration start time [MST]', before='LST')
+    fil = fits.getval(img, 'FILTER')
+    isodate = fits.getval(img, 'DATE-OBS')[:10]
+
+    # make a copy of the uncalibrated image if there isn't one already
+    rawimage_dir = todir / 'rawimage' / isodate
+    runcmd(f'cp -n {img} {rawimage_dir}')
+    
+    # calibrate
+    runcmd(f'cmos-calib -H 1 {img}')
+
+    # wcs and fwhm
+    if fil not in ('8', '9', 'S'): # don't do wcs, fwhm on grism or spectroscopy images
+        # WCS solutions are obtained by running Pinpoint on TCC, otherwise use local wcs
+        #run(f'wcs -u 0.1 -o2w {img} > /dev/null 2>&1', shell=True)
+        run(['fwhm', '-ow', img])
+
+    # Calculate zero-point magnitudes for foc images that are have Sloan filters and are in Sloan catalog
+    # NB overwrite switch on to override ZAG solution from Pinpoint
+    if img.name[:3] == 'foc':
+        ra = int(round(float(header['RA'][0:2])))
+        if fil == 'G' and ra in sloan_ra:
+            runcmd(f'calc-zmag -f g -ow {img}')
+        if fil == 'R' and ra in sloan_ra:
+            runcmd(f'calc-zmag -f r -ow {img}')
+        if fil == 'I' and ra in sloan_ra:
+            runcmd(f'calc-zmag -f i -ow {img}')
+
+    print(f'...finished processing of {img.name} at {timestamp()}')
+
+def distribute_image(img):
+    """Copy image to object storage and delete if it's too old
+    """
+    yr_obs = fits.getval(Path(img), 'DATE-OBS')[:4]
+    obs_code = img.name[0:3]
+    day_code = img.name[3:6]
+    groupdir = groups.get(obs_code[0], 'other')
+    target = Path(todir, groupdir, obs_code, yr_obs, day_code, img.name)
+
+    # create the image directory and its parents if needed
+    if not target.parent.exists():
+        target.parent.mkdir(mode=0o775, parents=True)
+        print("Created directory", target.parent)
+
+    # copy the image if target doesn't exist or is older
+    x = run(['cp', '-u', img, target], encoding='ascii', stdout=PIPE, stderr=STDOUT)
+    if not target.exists():
+        print(f"Failed to copy {img.name}: {x.stdout}")
+        continue
+    print(f"Copied {img.name} -> {target}")
+
+def remove_old(img):
+    """Delete the image if it's older than maxdays
+    """
+    day_nr = int(img.name[3:6])
+    if (current_day < day_nr): day_nr -= 365
+    if (current_day - day_nr > maxdays):
+        img.unlink()
+        print(f"Deleted {img}")
+
+
+os.umask(0o002)
+current_day = dt.utcnow().timetuple().tm_yday
+
+# enforce running only as talon group
+currentgroup = check_output('id -gn', shell=True, text=True).strip()
+if (currentgroup != 'talon'):
+    print(f"You are currently in group {currentgroup}. Please newgrp talon, then rerun")
+    sys.exit
+
+# Can specify day number or file(s) on command line
+# in which case script exits when specified files are done
+if len(sys.argv) > 1:
+    if sys.argv[1].isdigit():
+        day_nr = format(int(sys.argv[1]), '03d')
+        file_list = image_dir.glob(f"???{day_nr}*.fts")
+        print('Processing images for day %s at %s' % (day_nr, timestamp()))
+    else:
+        file_list = [Path(x) for x in sys.argv[1:]]
+        print('Processing %s at %s' % (' '.join(sys.argv[1:]), timestamp()))
+    print('============================================')
+    for img in file_list:
+        calibrate_image(img)
+# with no arguments, run continuously
+else:
+    while True
+        for img in image_dir.glob("*.fts"):
+            try:
+                header = fits.getheader(img, 0)
+            except OSError as e:
+                print(f"Corrupt FITS file error: {str(e)}")
+            if ('CALSTAT' not in header):
+                calibrate_image(img)
+                distribute_image(img)
+            remove_old(img)
+        time.sleep(5)

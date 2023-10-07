@@ -25,13 +25,12 @@ maxdays = 7
 def timestamp():
     return str(dt.now())[:19]
     
-def runcmd(cmd):
+def runcmd(cmd, **kwargs):
     """run a command and log output/errors if any to stdout
     add check=True to exit on errors
     """
-    x = subprocess.run(cmd, shell=True, encoding='ascii',
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if x.stdout: print(x.stdout)
+    return subprocess.run(cmd, check=True, shell=True, encoding='ascii',
+        stdout=subprocess.PIPE, **kwargs).stdout.strip()
 
 def calibrate_image(img):
     """process a single image"""
@@ -102,10 +101,10 @@ os.umask(0o002)
 current_day = dt.utcnow().timetuple().tm_yday
 
 # enforce running only as talon group
-currentgroup = check_output('id -gn', shell=True, text=True).strip()
+currentgroup = runcmd('id -gn').strip()
 if (currentgroup != 'talon'):
     print(f"You are currently in group {currentgroup}. Please newgrp talon, then rerun")
-    sys.exit
+    sys.exit()
 
 # Can specify day number or file(s) on command line
 # in which case script exits when specified files are done

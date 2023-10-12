@@ -36,7 +36,8 @@ def calibrate_image(img):
     """process a single image"""
 
     print(f'Started processing {img.name} at {timestamp()}')
-    fits.setval(img, 'CALSTART', timestamp(), 'Calibration start time [MST]', before='LST')
+    fits.setval(img, 'CALSTART', value=timestamp(),
+        comment='Calibration start time [MST]', before='LST')
     fil = fits.getval(img, 'FILTER')
     isodate = fits.getval(img, 'DATE-OBS')[:10]
 
@@ -50,8 +51,8 @@ def calibrate_image(img):
     # wcs and fwhm
     if fil not in ('8', '9', 'S'): # don't do wcs, fwhm on grism or spectroscopy images
         # WCS solutions are obtained by running Pinpoint on TCC, otherwise use local wcs
-        #run(f'wcs -u 0.1 -o2w {img} > /dev/null 2>&1', shell=True)
-        run(['fwhm', '-ow', img])
+        #runcmd(f'wcs -u 0.1 -o2w {str(img)} > /dev/null 2>&1')
+        runcmd(f'fwhm -ow {str(img)}')
 
     # Calculate zero-point magnitudes for foc images that are have Sloan filters and are in Sloan catalog
     # NB overwrite switch on to override ZAG solution from Pinpoint
@@ -81,7 +82,7 @@ def distribute_image(img):
         print("Created directory", target.parent)
 
     # copy the image if target doesn't exist or is older
-    x = run(['cp', '-u', img, target], encoding='ascii', stdout=PIPE, stderr=STDOUT)
+    x = runcmd(f'cp -u {str(img)}, {str(target)}')
     if target.exists():
         print(f"Copied {img.name} -> {target}")
     else:

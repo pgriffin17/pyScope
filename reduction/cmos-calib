@@ -188,8 +188,8 @@ hdr_cal['PEDESTAL'] = pedestal
 hdr_cal.add_comment(s0); hdr_cal.add_comment(s1) ; hdr_cal.add_comment(s2); hdr_cal.add_comment(s3)
 #hdr_cal.add_comment('Replaced bad columns: %s' % badcols)
 
-# Add CALSTAT keyword to calibrate images, so other programs realize this image is already calibrated
-hdr_cal.insert('INSTRUME',('CALSTAT','DF','CMOS_calib run'))
+# Update CALSTAT keyword so other programs realize this image is calibrated
+hdr_cal.set('CALSTAT', value='DF', comment='CMOS_calib run', before='INSTRUME')
 
 # Remove hot pixels if requested
 if N_iter > 0:

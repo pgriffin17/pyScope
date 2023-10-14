@@ -78,7 +78,7 @@ def process_image(img):
                 runcmd(f'calc-zmag -f r -ow {img}')
             if fil == 'I' and ra in sloan_ra:
                 runcmd(f'calc-zmag -f i -ow {img}')
-            runcmd(f"mv {str(landing_dir)}/*.sexout {str(landing.dir / 'sexout/')}")
+            runcmd(f"mv {str(landing_dir)}/*.sexout {str(landing_dir / 'sexout/')}")
 
         print(f'...finished processing of {img.name} at {timestamp()}')
 

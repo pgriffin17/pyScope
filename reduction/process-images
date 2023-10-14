@@ -100,7 +100,7 @@ def distribute_image(img):
         print("Created directory", target.parent)
 
     # copy the image if target doesn't exist or is older
-    x = runcmd(f'cp -u {str(img)}, {str(target)}')
+    x = runcmd(f'cp -u {str(img)} {str(target)}')
     if target.exists():
         print(f"Copied {img.name} -> {target}")
     else:

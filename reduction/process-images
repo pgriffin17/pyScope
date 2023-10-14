@@ -54,13 +54,13 @@ def process_image(img):
     try:
         header = fits.getheader(img, 0)
     except OSError as e:
-        logger.warning(f"Corrupt FITS file {str(img)}: {str(e)}")
+        logging.warning(f"Corrupt FITS file {str(img)}: {str(e)}")
         return
 
     if ('CALSTAT' not in header):
         distribute_image(img) # store a copy of the raw image
 
-        logger.info(f'Started processing {img.name} at {timestamp()}')
+        logging.info(f'Started processing {img.name} at {timestamp()}')
         fits.setval(img, 'CALSTART', value=timestamp(),
             comment='Calibration start time [MST]', before='LST')
         fil = fits.getval(img, 'FILTER')
@@ -87,13 +87,13 @@ def process_image(img):
                 runcmd(f'calc-zmag -f i -ow {img}')
             runcmd(f"mv {str(landing_dir)}/*.sexout {str(landing_dir / 'sexout/')}")
 
-        logger.info(f'...finished processing of {img.name} at {timestamp()}')
+        logging.info(f'...finished processing of {img.name} at {timestamp()}')
 
     distribute_image(img) # store copy of calibrated images
     
     if time.time() - img.stat().st_mtime > maxage:
         img.unlink()
-        logger.info(f"Deleted {img}")
+        logging.info(f"Deleted {img}")
 
 def distribute_image(img):
     """Copy raw or calibrated image to long-term storage
@@ -112,14 +112,14 @@ def distribute_image(img):
     # create the image directory and its parents if needed
     if not target.parent.exists():
         target.parent.mkdir(mode=0o775, parents=True)
-        logger.info("Created directory", target.parent)
+        logging.info("Created directory", target.parent)
 
     # copy the image if target doesn't exist or is older
     x = runcmd(f'cp -u {str(img)} {str(target)}')
     if target.exists():
-        logger.info(f"Copied {img.name} -> {target}")
+        logging.info(f"Copied {img.name} -> {target}")
     else:
-        logger.warning(f"Failed to copy {img.name}: {x}")
+        logging.warning(f"Failed to copy {img.name}: {x}")
 
 
 os.umask(0o002)
@@ -134,10 +134,10 @@ if len(sys.argv) > 1:
     if sys.argv[1].isdigit():
         day_nr = format(int(sys.argv[1]), '03d')
         file_list = landing_dir.glob(f"???{day_nr}*.fts")
-        logger.info('Processing images for day %s at %s' % (day_nr, timestamp()))
+        logging.info('Processing images for day %s at %s' % (day_nr, timestamp()))
     else:
         file_list = [Path(x) for x in sys.argv[1:]]
-        logger.info('Processing %s at %s' % (' '.join(sys.argv[1:]), timestamp()))
+        logging.info('Processing %s at %s' % (' '.join(sys.argv[1:]), timestamp()))
     for img in file_list:
         process_image(img)
 

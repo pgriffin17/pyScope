@@ -33,11 +33,17 @@ groups = dict(m='macalester',
               i='iowa',
               x='external')
 
-logging.basicConfig(
-    filename="/usr/local/telescope/archive/logs/process-images.log",
-    level=logging.INFO,
-    format="%(asctime)s:%(levelname)s:%(message)s"
-    )
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler("/usr/local/telescope/archive/logs/process-images.log")
+fh.setlevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+fmt = logging.Formatter("%(asctime)s:%(levelname)s:%(message)s")
+fh.setFormatter(fmt)
+ch.setFormatter(fmt)
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 def runcmd(cmd, **kwargs):
     """run a command and log output/errors if any to stdout
@@ -52,13 +58,13 @@ def process_image(img):
     try:
         header = fits.getheader(img, 0)
     except OSError as e:
-        logging.warning(f"Corrupt FITS file {str(img)}: {str(e)}")
+        logger.warning(f"Corrupt FITS file {str(img)}: {str(e)}")
         return
 
     if ('CALSTAT' not in header):
         distribute_image(img) # store a copy of the raw image
 
-        logging.info(f'Started processing {img.name}')
+        logger.info(f'Started processing {img.name}')
         fits.setval(img, 'CALSTART', value=str(dt.now())[:19],
             comment='Calibration start time [MST]', before='LST')
         fil = fits.getval(img, 'FILTER')
@@ -85,13 +91,13 @@ def process_image(img):
                 runcmd(f'calc-zmag -f i -ow {img}')
             runcmd(f"mv {str(landing_dir)}/*.sexout {str(landing_dir / 'sexout/')}")
 
-        logging.info(f'...finished processing of {img.name}')
+        logger.info(f'...finished processing of {img.name}')
 
     distribute_image(img) # store copy of calibrated images
     
     if time.time() - img.stat().st_mtime > maxage:
         img.unlink()
-        logging.info(f"Deleted {img}")
+        logger.info(f"Deleted {img}")
 
 def distribute_image(img):
     """Copy raw or calibrated image to long-term storage
@@ -110,16 +116,16 @@ def distribute_image(img):
     # create the image directory and its parents if needed
     if not target.parent.exists():
         target.parent.mkdir(mode=0o775, parents=True)
-        logging.info(f'Created directory {str(target.parent)}')
+        logger.info(f'Created directory {str(target.parent)}')
 
     # copy the image if target doesn't exist or is older
     if not target.exists() or target.stat().st_mtime < img.stat().st_mtime:
         try:
             shutil.copy(img, target)
         except:
-            logging.exception(f'Unable to copy {img.name}')
+            logger.exception(f'Unable to copy {img.name}')
         else:
-            logging.info(f"Copied {img.name} -> {target}")
+            logger.info(f"Copied {img.name} -> {target}")
 
 
 os.umask(0o002)

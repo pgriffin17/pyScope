@@ -112,11 +112,13 @@ def distribute_image(img):
         logging.info(f'Created directory {str(target.parent)}')
 
     # copy the image if target doesn't exist or is older
-    x = runcmd(f'cp -u {str(img)} {str(target)}')
-    if target.exists():
-        logging.info(f"Copied {img.name} -> {target}")
-    else:
-        logging.warning(f"Failed to copy {img.name}: {x}")
+    if not target.exists() or target.stat().st_mtime < img.stat().st_mtime:
+        try:
+            shutil.copy(img, target)
+        except:
+            logging.exception(f'Unable to copy {img.name}')
+        else:
+            logging.info(f"Copied {img.name} -> {target}")
 
 
 os.umask(0o002)

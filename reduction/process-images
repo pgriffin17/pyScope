@@ -23,6 +23,14 @@ storage_root = Path('/mnt/imagesbucket')
 # maximum age in seconds
 maxage = 7 * 3600 * 24
 
+# image prefixes and group names
+groups = dict(m='macalester',
+              a='augustana',
+              c='coe',
+              k='knox',
+              i='iowa',
+              x='external')
+
 def timestamp():
     return str(dt.now())[:19]
     

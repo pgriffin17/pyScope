@@ -38,9 +38,6 @@ logging.basicConfig(
     format="%(asctime)s:%(levelname)s:%(message)s"
     )
 
-def timestamp():
-    return str(dt.now())[:19]
-    
 def runcmd(cmd, **kwargs):
     """run a command and log output/errors if any to stdout
     add check=True to exit on errors
@@ -60,8 +57,8 @@ def process_image(img):
     if ('CALSTAT' not in header):
         distribute_image(img) # store a copy of the raw image
 
-        logging.info(f'Started processing {img.name} at {timestamp()}')
-        fits.setval(img, 'CALSTART', value=timestamp(),
+        logging.info(f'Started processing {img.name}')
+        fits.setval(img, 'CALSTART', value=str(dt.now())[:19],
             comment='Calibration start time [MST]', before='LST')
         fil = fits.getval(img, 'FILTER')
         isodate = fits.getval(img, 'DATE-OBS')[:10]
@@ -87,7 +84,7 @@ def process_image(img):
                 runcmd(f'calc-zmag -f i -ow {img}')
             runcmd(f"mv {str(landing_dir)}/*.sexout {str(landing_dir / 'sexout/')}")
 
-        logging.info(f'...finished processing of {img.name} at {timestamp()}')
+        logging.info(f'...finished processing of {img.name}')
 
     distribute_image(img) # store copy of calibrated images
     
@@ -112,7 +109,7 @@ def distribute_image(img):
     # create the image directory and its parents if needed
     if not target.parent.exists():
         target.parent.mkdir(mode=0o775, parents=True)
-        logging.info("Created directory", target.parent)
+        logging.info(f'Created directory {str(target.parent)}')
 
     # copy the image if target doesn't exist or is older
     x = runcmd(f'cp -u {str(img)} {str(target)}')
@@ -123,21 +120,17 @@ def distribute_image(img):
 
 
 os.umask(0o002)
-current_day = dt.utcnow().timetuple().tm_yday
 
 # Can specify day number or file(s) on command line
 # in which case script exits when specified files are done
 if len(sys.argv) > 1:
     if (runcmd('id -gn').strip() != 'talon'):
-        print(f"Must be run as 'talon' user or group")
-        sys.exit()
+        sys.exit("Must be run as 'talon' user or group")
     if sys.argv[1].isdigit():
         day_nr = format(int(sys.argv[1]), '03d')
         file_list = landing_dir.glob(f"???{day_nr}*.fts")
-        logging.info('Processing images for day %s at %s' % (day_nr, timestamp()))
     else:
         file_list = [Path(x) for x in sys.argv[1:]]
-        logging.info('Processing %s at %s' % (' '.join(sys.argv[1:]), timestamp()))
     for img in file_list:
         process_image(img)
 

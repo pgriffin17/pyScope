@@ -1,5 +1,24 @@
 #!/usr/bin/env python
 """Calibrate and manage incoming FITS images
+
+This is the contents of the systemd service file used to run this on chronos:
+
+[Unit]
+Description=PyScope Incoming Image Processing
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/telescope/bin/process-images
+User=talon
+Group=talon
+Restart=on-failure
+Environment="PATH=/opt/miniforge3/bin:/usr/local/telescope/bin:/usr/local/bin:/usr/bin"
+
+[Install]
+WantedBy=multi-user.target
+
+
 """
 
 import logging

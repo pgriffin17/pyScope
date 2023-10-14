@@ -100,18 +100,26 @@ def process_image(img):
         if fil not in ('8', '9', 'S'): # don't do wcs, fwhm on grism or spectroscopy images
             # WCS solutions are obtained by running Pinpoint on TCC, otherwise use local wcs
             #runcmd(f'wcs -u 0.1 -o2w {str(img)} > /dev/null 2>&1')
-            runcmd(f'fwhm -ow {str(img)}')
+            f = runcmd(f'fwhm -ow {str(img)}')
+            if f.returncode:
+                logger.warning(z.stdout)
+            else:
+                logger.info(z.stdout)
 
         # Calculate zero-point magnitudes for foc images that are have Sloan filters and are in Sloan catalog
         # NB overwrite switch on to override ZAG solution from Pinpoint
         if img.name[:3] == 'foc':
             ra = int(round(float(header['RA'][0:2])))
             if fil == 'G' and ra in sloan_ra:
-                runcmd(f'calc-zmag -f g -ow {img}')
+                z = runcmd(f'calc-zmag -f g -ow {img}')
             if fil == 'R' and ra in sloan_ra:
-                runcmd(f'calc-zmag -f r -ow {img}')
+                z = runcmd(f'calc-zmag -f r -ow {img}')
             if fil == 'I' and ra in sloan_ra:
-                runcmd(f'calc-zmag -f i -ow {img}')
+                z = runcmd(f'calc-zmag -f i -ow {img}')
+            if z.returncode:
+                logger.warning(z.stdout)
+            else:
+                logger.info(z.stdout)
             runcmd(f"mv {str(landing_dir)}/*.sexout {str(landing_dir / 'sexout/')}")
 
         logger.info(f'...finished processing of {img.name}')

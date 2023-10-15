@@ -92,9 +92,9 @@ def process_image(img):
         # calibrate
         cal = runcmd(f'cmos-calib -H 1 {img}')
         if cal.returncode:
-            for x in cal.stdout.split('\n'): logger.warning(x)
+            for x in cal.stdout.strip().split('\n'): logger.warning(x)
         else:
-            for x in cal.stdout.split('\n'): logger.info(x)
+            for x in cal.stdout.strip().split('\n'): logger.info(x)
 
         # wcs and fwhm
         if fil not in ('8', '9', 'S'): # don't do wcs, fwhm on grism or spectroscopy images

@@ -108,7 +108,8 @@ ymax = ypixels - border
 dark_t_vals = [2**n for n in range(-3,12)]  # List of exposure times of available darks
 f_diff = lambda  t: abs(t - exptime)
 tdark = min(dark_t_vals, key=f_diff)
-if verbose: print('Warning: Science image has different exposure time than dark image (%.1f sec vs. %.1f sec)' % (exptime, tdark))
+if tdark != exptime and verbose:
+    print('Warning: Science image has different exposure time than dark image (%.1f sec vs. %.1f sec)' % (exptime, tdark))
 
 # Set default file names using binning and readout mdoe
 if readout_mode == 'High Gain':

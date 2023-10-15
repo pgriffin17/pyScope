@@ -172,7 +172,7 @@ pedestal = 3*np.std(im_raw)
 im_cal = (im_raw - im_dark)/im_flat + pedestal
 # restrict  pixel  range to 16 bits [0, pmax]
 im_cal[im_cal<0] = 0; im_cal[im_cal > pmax] = pmax 
-im_cal = np.floor(im_cal)
+#im_cal = np.floor(im_cal)
 # Fix bad columns 
 #im_cal, badcols = fix_badcolumns(im_cal, imsize, border)
 if len(bad_columns) != 0:

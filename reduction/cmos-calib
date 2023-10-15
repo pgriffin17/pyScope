@@ -92,7 +92,7 @@ hdr = pyfits.getheader(raw_image)
 nbin = hdr['XBINNING']
 xpixels = hdr['NAXIS1']; ypixels = hdr['NAXIS2']
 readout_mode = hdr['READOUTM']
-exptime = hdr['EXPTIME']
+exptime = round(hdr['EXPTIME'], 2)
 
 pmax = 2**16 -1  # Hack for now, should get from header info
 

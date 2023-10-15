@@ -80,7 +80,7 @@ def process_image(img):
         logger.warning(f"Corrupt FITS file {str(img)}: {str(e)}")
         return
 
-    if ('CALSTART' not in header):
+    if 'CALSTART' not in header and 'CALSTAT' not in header:
         distribute_image(img) # store a copy of the raw image
 
         logger.info(f'Started processing {img.name}')

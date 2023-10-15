@@ -68,8 +68,8 @@ logger.addHandler(ch)
 def runcmd(cmd, **kwargs):
     """run a subprocess
     """
-    return subprocess.run(cmd, shell=True, encoding='ascii',
-        stdout=subprocess.PIPE, **kwargs)
+    return subprocess.run(cmd, shell=True, capture_output=True,
+        encoding='ascii', **kwargs)
 
 def process_image(img):
     """process a single image
@@ -91,10 +91,9 @@ def process_image(img):
 
         # calibrate
         cal = runcmd(f'cmos-calib -H 1 {img}')
+        for x in cal.stdout.strip().split('\n'): logger.info(x)
         if cal.returncode:
-            for x in cal.stdout.strip().split('\n'): logger.warning(x)
-        else:
-            for x in cal.stdout.strip().split('\n'): logger.info(x)
+            logger.warning(cal.stderr.strip())
 
         # wcs and fwhm
         if fil not in ('8', '9', 'S'): # don't do wcs, fwhm on grism or spectroscopy images

@@ -52,7 +52,7 @@ groups = dict(m='macalester',
               i='iowa',
               x='external')
 
-#configure the logger
+# configure the logger - >INFO to log, >DEBUG to console
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler("/usr/local/telescope/archive/logs/process-images.log")

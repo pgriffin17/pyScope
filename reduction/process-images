@@ -146,6 +146,8 @@ def distribute_image(img):
     if not target.exists() or target.stat().st_mtime < img.stat().st_mtime:
         try:
             shutil.copy(img, target)
+            if target.parent.name == 'failed':
+                img.unlink()
         except:
             logger.exception(f'Unable to copy {img.name}')
         else:

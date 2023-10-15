@@ -80,7 +80,7 @@ def process_image(img):
         logger.warning(f"Corrupt FITS file {str(img)}: {str(e)}")
         return
 
-    if ('CALSTAT' not in header):
+    if ('CALSTART' not in header):
         distribute_image(img) # store a copy of the raw image
 
         logger.info(f'Started processing {img.name}')
@@ -124,7 +124,7 @@ def process_image(img):
 
         logger.info(f'...finished processing of {img.name}')
 
-    distribute_image(img) # store copy of calibrated images
+    distribute_image(img) # store copy of calibrated image
     
     if time.time() - img.stat().st_mtime > maxage:
         img.unlink()

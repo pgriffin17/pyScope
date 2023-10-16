@@ -117,7 +117,7 @@ def process_image(img):
 
     distribute_image(img) # store copy of calibrated image
     
-    if time.time() - img.stat().st_mtime > maxage:
+    if img.exists() and time.time() - img.stat().st_mtime > maxage:
         img.unlink()
         logger.info(f"Deleted {img}")
 

@@ -74,6 +74,7 @@ def runcmd(cmd, **kwargs):
 def process_image(img):
     """process a single image
     """
+
     try:
         header = fits.getheader(img, 0)
     except OSError as e:
@@ -173,5 +174,7 @@ if len(sys.argv) > 1:
 else:
     while True:
         for img in landing_dir.glob("*.fts"):
+            if not os.access(img, os.R_OK|os.W_OK):
+                continue # file still being written
             process_image(img)
         time.sleep(5)

@@ -174,7 +174,5 @@ if len(sys.argv) > 1:
 else:
     while True:
         for img in landing_dir.glob("*.fts"):
-            if not os.access(img, os.R_OK|os.W_OK):
-                continue # file still being written
             process_image(img)
         time.sleep(5)

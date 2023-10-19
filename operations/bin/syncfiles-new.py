@@ -155,9 +155,11 @@ def copy_images(max_image_count):
         
         logging.info("Copying %s", filepath)
         
+        filename = os.path.basename(filepath)
+        remote_file = os.path.join(remote_image_dir, filename)
         scp_return_code = ssh.secure_copy(
             filepath,
-            remote_username + "@" + remote_host + ":" + remote_image_dir, 
+            remote_username + "@" + remote_host + ":" + remote_file + '.part', 
             remote_port=remote_port,
             scp_executable=pscp_exe,
             identity_file=identity_file
@@ -166,7 +168,18 @@ def copy_images(max_image_count):
         if scp_return_code != 0:
             logging.info("Error transferring image")
             continue
-
+        else:
+            logging.info("Renaming remote %s to %s", remote_file + '.part', remote_file)
+            ssh_return_code = ssh.ssh_command(
+                move_command,
+                remote_username,
+                remote_host,
+                remote_port=remote_port,
+                ssh_executable=plink_exe,
+                identity_file=identity_file
+                )
+            if ssh_return_code != 0:
+                logging.info("Remote file NOT renamed successfully")
         
         if not os.path.exists(local_transferred_image_dir):
             logging.info("Creating %s", local_transferred_image_dir)
@@ -176,7 +189,6 @@ def copy_images(max_image_count):
             logging.info("Creating %s", local_duplicate_image_dir)
             os.makedirs(local_duplicate_image_dir)
             
-        filename = os.path.basename(filepath)
         dest_filepath_transferred = os.path.join(local_transferred_image_dir, filename)
         dest_filepath_duplicate = os.path.join(local_duplicate_image_dir, filename)
         logging.info("local_transferred_image_dir = %s", local_transferred_image_dir)

@@ -117,12 +117,12 @@ rmode = readout_mode.replace(' ', '')
 if verbose: print('Calibrating using mode %s' % readout_mode)
 
 if dark_image == '':
-    dark_image = '{0}master_dark_{1:i}x{1:i}_{2}_{3}s.fts'.format(calib_dir, nbin, rmode, td)
+    dark_image = '{0}master_dark_{1:d}x{1:d}_{2}_{3}s.fts'.format(calib_dir, nbin, rmode, td)
 
 if flat_image == '':
     hdr_raw = getheader(raw_image)
     filter_raw = hdr_raw['filter'][0].upper()
-    flat_imgstub = '{0}master_flat_{1}_{2:i}x{2:i}_{3}'.format(calib_dir, filter_raw.upper(), nbin, rmode)
+    flat_imgstub = '{0}master_flat_{1}_{2:d}x{2:d}_{3}'.format(calib_dir, filter_raw.upper(), nbin, rmode)
     flat_imgs = glob.glob(flat_imgstub + '*.fts')
 if not flat_imgs:
     sys.exit('Flat image does not exist, exiting')

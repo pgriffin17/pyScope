@@ -175,6 +175,7 @@ if len(sys.argv) > 1:
 # with no arguments, run continuously
 else:
     while True:
-        for img in landing_dir.glob("*.fts"):
-            process_image(img)
+        file_list = landing_dir.glob("*.fts")
         time.sleep(5)
+        for img in file_list:
+            process_image(img)

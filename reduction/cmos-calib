@@ -153,7 +153,7 @@ if filter_raw[0] != filter_flat[0]: sys.exit('Raw (%s), flat (%s) filters do not
 
 # Flat: Normalize to one y dividing by median
 if verbose:
-    print('User flat image %s' % flat_image)
+    print('Used flat image %s' % flat_image)
     print('Flat image statistics:  min = %5.1f, median = %5.1f, max = %5.1f' % (np.min(im_flat), np.median(im_flat), np.max(im_flat) ))
 
 im_flat = im_flat/np.mean(im_flat[xmin:xmax,ymin:ymax])

@@ -92,7 +92,9 @@ def process_image(img):
 
         # calibrate
         cal = runcmd(f'cmos-calib -H 1 {img}')
-        for x in cal.stdout.strip().split('\n'): logger.info(x)
+        for x in cal.stdout.strip().split('\n'):
+            header.add_history(x)
+            logger.info(x)
         if cal.returncode:
             logger.warning(cal.stderr.strip())
 

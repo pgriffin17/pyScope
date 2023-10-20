@@ -26,7 +26,7 @@ don't subtract bias), is recommended for CMOS images [e.g. Doug George email Oct
 version = '1.1 (7 Feb 2022)'
 
 # import needed modules
-import sys, os, time
+import sys, os, time, glob
 from astropy.io import fits as pyfits
 from astropy.io.fits import getheader, getdata
 from optparse import OptionParser
@@ -111,30 +111,28 @@ tdark = min(dark_t_vals, key=f_diff)
 if tdark != exptime and verbose:
     print('Warning: Science image has different exposure time than dark image (%.1f sec vs. %.1f sec)' % (exptime, tdark))
 
-# Set default file names using binning and readout mdoe
-if readout_mode == 'High Gain':
-    dark_master = '%smaster-dark-%s-%.4g-%ix%i.fts' % (calib_dir, 'high',tdark, nbin, nbin)
-elif readout_mode == 'Low Gain':
-    dark_master = '%smaster-dark-%s-%.4g-%ix%i.fts' % (calib_dir, 'low', tdark, nbin, nbin)
-elif readout_mode == 'High Gain StackPro':
-    dark_master = '%smaster-dark-%s-%.4g-%ix%i.fts' % (calib_dir, 'spro',tdark, nbin, nbin)
-else:
-    sys.exit('Mode %s is not currently supported, exiting' % readout_mode)
+# set dark, flat, output image defaults if filenames not specified
+td = str(tdark).replace('.', '-')
+rmode = readout_mode.replace(' ', '')
 if verbose: print('Calibrating using mode %s' % readout_mode)
 
-# set dark, flat, output image defaults if filenames not specified
-if dark_image == '' : dark_image = dark_master
+if dark_image == '':
+    dark_image = '{0}master_dark_{1:i}x{1:i}_{2}_{3}s.fts'.format(calib_dir, nbin, rmode, td)
 
 if flat_image == '':
     hdr_raw = getheader(raw_image)
     filter_raw = hdr_raw['filter'][0].upper()
-    flat_image = '%smaster-flat-%s-%ix%i.fts'% (calib_dir,filter_raw.upper(), nbin, nbin)
+    flat_imgstub = '{0}master_flat_{1}_{2:i}x{2:i}_{3}'.format(calib_dir, filter_raw.upper(), nbin, rmode)
+    flat_imgs = glob.glob(flat_imgstub + '*.fts')
+if not flat_imgs:
+    sys.exit('Flat image does not exist, exiting')
+flat_image = flat_imgs[0]
+
 if cal_image == '' : cal_image = raw_image
 
 # Check for existence of user-specified calibration and science images
 if not os.path.isfile(raw_image) : sys.exit('Raw image %s does not exist, exiting'  % raw_image)
 if not os.path.isfile(dark_image): sys.exit('Dark image %s does not exist, exiting' % dark_image)
-if not os.path.isfile(flat_image): sys.exit('Flat image %s does not exist, exiting' % flat_image)
 
 # set variables
 im_raw =  getdata(raw_image)  ; hdr_raw =  getheader(raw_image)

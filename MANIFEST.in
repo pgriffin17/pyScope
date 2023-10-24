@@ -1,4 +1,0 @@
-global-include *.txt *.py
-include CHANGELOG.md
-include CITATION
-include LICENSE

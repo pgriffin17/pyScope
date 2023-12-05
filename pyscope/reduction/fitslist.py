@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import glob
 import logging
 
@@ -6,8 +8,22 @@ import prettytable
 from astropy import coordinates as coord
 from astropy import time
 from astropy.io import fits
+import numpy as np
 
 logger = logging.getLogger(__name__)
+
+def round_exptime(exptime):
+    """If the exposure time is greater than 10, 
+    round to the nearest 1 second. Otherwise,
+    if greater than 1, round to the nearest 0.1 second, 
+    otherwise round to 0.001 seconds.
+    """
+    if exptime > 10:
+        return round(exptime)
+    elif exptime > 1:
+        return round(exptime, 1)
+    else:
+        return round(exptime, 3)
 
 
 @click.command(
@@ -15,24 +31,26 @@ logger = logging.getLogger(__name__)
                 https://pyscope.readthedocs.io/ for more
                 information."""
 )
-@click.option("-d", "--date", default="", help="Date [default all].")
-@click.option("-f", "--filt", default="", help="Filter name [default all].")
-@click.option("-r", "--readout", default="", help="Readout mode [default all].")
-@click.option("-b", "--binning", default="", help="Binning [default all].")
+@click.option("-d", "--date", "check_date", default="", help="Date [default all].")
+@click.option("-f", "--filt", "check_filt", default="", help="Filter name [default all].")
+@click.option("-r", "--readout", "check_readout", default="", help="Readout mode [default all].")
+@click.option("-b", "--binning", "check_binning", default="", help="Binning [default all].")
 @click.option(
     "-e",
     "--exptime",
+    "check_exptime",
     default="",
     help=f"""Approximate exposure time [default all].
                 Note that an error of up to 1% is permitted to allow for imprecisions
                 in the camera.""",
 )
-@click.option("-t", "--target", default="", help="Target name [default all].")
+@click.option("-t", "--target", "check_target", default="", help="Target name [default all].")
 @click.option(
     "-v", "--verbose", count=True, type=click.IntRange(0, 1), help="Verbose output."
 )
 @click.argument("fnames", nargs=-1, type=click.Path(exists=True, dir_okay=False))
 @click.version_option()
+
 def fitslist_cli(
     check_date,
     check_filt,
@@ -68,7 +86,7 @@ def fitslist_cli(
         try:
             with fits.open(ftsfile) as hdu:
                 header = hdu[0].header
-                data = hdu[0].data
+                # data = hdu[0].data # Currently unused
         except:
             logger.warning(f"Could not open {ftsfile}.")
             continue
@@ -79,8 +97,7 @@ def fitslist_cli(
             logger.debug(
                 f"Date {date.strftime('%Y-%m-%d')} not in {check_date}. Skipping {ftsfile}."
             )
-            continue
-
+        
         # Filter
         try:
             filt = header["FILTER"]
@@ -89,9 +106,9 @@ def fitslist_cli(
                 filt = header["FILT"]
             except KeyError:
                 filt = ""
+                click.echo("Can't find filter.")
         if filt not in check_filt.split(",") or check_filt == "":
             logger.debug(f"Filter {filt} not in {check_filt}. Skipping {ftsfile}.")
-            continue
 
         # Readout mode
         try:
@@ -105,7 +122,6 @@ def fitslist_cli(
             logger.debug(
                 f"Readout mode {readout_mode} not in {check_readout}. Skipping {ftsfile}."
             )
-            continue
 
         # Binning
         try:
@@ -115,13 +131,12 @@ def fitslist_cli(
             x_binning = ""
             y_binning = ""
         if (
-            x_binning + "x" + y_binning not in check_binning.split(",")
+            str(x_binning) + "x" + str(y_binning) not in check_binning.split(",")
             or check_binning == ""
         ):
             logger.debug(
                 f"Binning {x_binning}x{y_binning} not in {check_binning}. Skipping {ftsfile}."
             )
-            continue
 
         # Exposure time
         try:
@@ -137,7 +152,7 @@ def fitslist_cli(
                     logger.debug(
                         f"Exposure time {exptime} not in {check_exptime}. Skipping {ftsfile}."
                     )
-                    continue
+        
 
         # Target
         try:
@@ -157,7 +172,6 @@ def fitslist_cli(
             logger.debug(
                 f"Target {target_name} not in {check_target}. Skipping {ftsfile}."
             )
-            continue
 
         # Actual coordinates
         try:
@@ -176,7 +190,7 @@ def fitslist_cli(
                     ra = ""
                     dec = ""
         if "" not in (ra, dec):
-            obj = coord.SkyCoord(ra, dec)
+            obj = coord.SkyCoord(ra, dec, unit="hourangle, deg")
 
         # Scheduled coordinates
         try:
@@ -192,16 +206,16 @@ def fitslist_cli(
             dra = (obj.ra - sched_obj.ra).to("arcsec")
             ddec = (obj.dec - sched_obj.dec).to("arcsec")
         else:
-            dra = ""
-            ddec = ""
+            dra = np.nan
+            ddec = np.nan
 
         # ZP
         try:
             zp = header["ZMAG"]
             zp_err = header["ZMAGERR"]
         except KeyError:
-            zp = ""
-            zp_err = ""
+            zp = np.nan
+            zp_err = np.nan
 
         # FWHM
         try:
@@ -225,16 +239,16 @@ def fitslist_cli(
 
         print_rows.append(
             [
-                fitsfile,
+                ftsfile,
                 target_name,
                 date.jd,
                 date.iso,
                 filt,
                 readout_mode,
-                x_binning + "x" + y_binning,
-                f"{exptime:.3f}",
-                obj.ra.hms,
-                obj.dec.dms,
+                str(x_binning) + "x" + str(y_binning),
+                f"{round_exptime(exptime)}",
+                obj.ra.to_string(unit="hour", sep=":"),
+                obj.dec.to_string(unit="deg", sep=":"),
                 f"{zp:.3f}+/-{zp_err:.3f}",
                 f"{fwhmh:.2f}+/-{fwhmhs:.2f}",
                 f"{fwhmv:.2f}+/-{fwhmvs:.2f}",
@@ -268,24 +282,24 @@ def fitslist_cli(
         "FWHM H [pix]",
         "FWHM V [pix]",
         "Moon angle [deg]",
-        "Moon phase [0-1]",
+        "Moon phase [%]",
         "dRA [arcsec]",
         "dDec [arcsec]",
     ]
 
-    T.align["FITS file"] = "l"
+    table.align["FITS file"] = "l"
     click.echo(table)
     click.echo()
     click.echo(f"Number of images = {len(print_rows)}")
 
-    fwhmh = np.median([row[11] for row in print_rows])
-    fwhmhs = np.std([row[11] for row in print_rows])
-    fwhmv = np.median([row[12] for row in print_rows])
-    fwhmvs = np.std([row[12] for row in print_rows])
-    click.echo(f"Median FWHM H = {fwhmh:.2f} +/- {fwhmhs:.2f} pix")
-    click.echo(f"Median FWHM V = {fwhmv:.2f} +/- {fwhmvs:.2f} pix")
+    # fwhmh = np.median([row[11] for row in print_rows])
+    # fwhmhs = np.std([row[11] for row in print_rows])
+    # fwhmv = np.median([row[12] for row in print_rows])
+    # fwhmvs = np.std([row[12] for row in print_rows])
+    # click.echo(f"Median FWHM H = {fwhmh:.2f} +/- {fwhmhs:.2f} pix")
+    # click.echo(f"Median FWHM V = {fwhmv:.2f} +/- {fwhmvs:.2f} pix")
 
-    moon_phs = np.mean([row[14] for row in print_rows])
+    moon_phs = np.mean([float(row[14]) for row in print_rows])
     click.echo(f"Mean Moon phase = {moon_phs:.2f}")
 
     click.echo("\nMedian zero-point magnitudes")
@@ -306,3 +320,7 @@ def fitslist_cli(
 
 
 fitslist = fitslist_cli.callback
+
+if __name__ == '__main__':
+    fitslist_cli()
+
